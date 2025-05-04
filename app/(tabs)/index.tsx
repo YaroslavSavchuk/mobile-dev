@@ -12,6 +12,7 @@ export default function HomeScreen() {
   const { points, updatePoints } = useGame();
   const startPosition = useSharedValue({ x: 0, y: 0 });
   const position = useSharedValue({ x: 0, y: 0 });
+  const startScale = useSharedValue(1);
   const scale = useSharedValue(1);
 
   const singleTap = Gesture.Tap().onEnd(() => {
@@ -43,6 +44,18 @@ export default function HomeScreen() {
       };
     });
 
+  const fling = Gesture.Fling()
+    .direction(1 | 3)
+    .onStart(e => {
+      runOnJS(updatePoints)(Math.floor(Math.random() * 10) + 1);
+    });
+
+  const pinch = Gesture.Pinch()
+    .onStart(() => {
+      startScale.value = scale.value;
+    })
+    .onUpdate(e => scale.value = e.scale);
+
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [
       { translateX: position.value.x },
@@ -52,8 +65,8 @@ export default function HomeScreen() {
   }));
 
   const composedGestures = Gesture.Simultaneous(
-    taps, 
-    Gesture.Simultaneous(longPress, pan)
+    taps,
+    Gesture.Simultaneous(longPress, pan, pinch, fling)
   );
 
   return (
