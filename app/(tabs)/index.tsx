@@ -1,74 +1,276 @@
-import { Image, StyleSheet, Platform } from 'react-native';
+import React, { useState } from 'react';
+import {
+  View,
+  FlatList,
+  TouchableOpacity,
+  Text,
+  ScrollView,
+  StyleSheet,
+  Platform,
+  Alert,
+} from 'react-native';
+import { useFileManager } from '@/hooks/useFileManager';
+import { FileItemComponent } from '@/components/FileItem';
+import { DiskStats } from '@/components/DiskStats';
+import { CreateFolderModal } from '@/components/modals/CreateFolderModal';
+import { TextFileModal } from '@/components/modals/TextFileModal';
+import { FileDetailModal } from '@/components/modals/FileDetailModal';
+import { FileDetail } from "@/types/filteTypes" 
 
-import { HelloWave } from '@/components/HelloWave';
-import ParallaxScrollView from '@/components/ParallaxScrollView';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
+import * as FileSystem from 'expo-file-system';
 
-export default function HomeScreen() {
+const BASE_PATH = FileSystem.documentDirectory + 'AppData/';
+
+const FileManagerScreen = () => {
+  const {
+    currentPath,
+    fileList,
+    diskStats,
+    navigateToFolder,
+    navigateUp,
+    loadDirectory,
+    loadDiskStats,
+  } = useFileManager();
+
+  const [showFolderModal, setShowFolderModal] = useState(false);
+  const [showTextModal, setShowTextModal] = useState(false);
+  const [showDetailModal, setShowDetailModal] = useState(false);
+  const [folderName, setFolderName] = useState('');
+  const [textFileName, setTextFileName] = useState('');
+  const [textContent, setTextContent] = useState('');
+  const [editingFilePath, setEditingFilePath] = useState<string | null>(null);
+  const [fileDetail, setFileDetail] = useState<FileDetail | null>(null);
+
+  const handleCreateFolder = async () => {
+    if (folderName.trim() === '') return;
+    try {
+      await FileSystem.makeDirectoryAsync(currentPath + folderName);
+      setFolderName('');
+      setShowFolderModal(false);
+      loadDirectory(currentPath);
+    } catch (error) {
+      Alert.alert('Error', 'Failed to create folder');
+    }
+  };
+
+  const handleCreateTextFile = async () => {
+    if (textFileName.trim() === '') return;
+    try {
+      const filePath = `${currentPath}${textFileName}.txt`;
+      await FileSystem.writeAsStringAsync(filePath, textContent);
+      resetTextModal();
+      loadDirectory(currentPath);
+    } catch (error) {
+      Alert.alert('Error', 'Failed to create file');
+    }
+  };
+
+  const handleSaveEdits = async () => {
+    if (!editingFilePath) return;
+    try {
+      await FileSystem.writeAsStringAsync(editingFilePath, textContent);
+      resetTextModal();
+      loadDirectory(currentPath);
+    } catch (error) {
+      Alert.alert('Error', 'Failed to save changes');
+    }
+  };
+
+  const resetTextModal = () => {
+    setTextFileName('');
+    setTextContent('');
+    setEditingFilePath(null);
+    setShowTextModal(false);
+  };
+
+  // Item interactions
+  const handleDeleteItem = (name: string, isDirectory: boolean) => {
+    Alert.alert('Confirm Delete', `Delete ${name}?`, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await FileSystem.deleteAsync(currentPath + name);
+            loadDirectory(currentPath);
+            loadDiskStats();
+          } catch (error) {
+            Alert.alert('Error', 'Failed to delete item');
+          }
+        },
+      },
+    ]);
+  };
+
+  const handleShowDetail = async (name: string, isDirectory: boolean) => {
+    try {
+      const info = await FileSystem.getInfoAsync(currentPath + name);
+      setFileDetail({
+        name,
+        isDirectory,
+        size: info.size ?? 0,
+        modificationTime: info.modificationTime,
+      });
+      setShowDetailModal(true);
+    } catch (error) {
+      Alert.alert('Error', 'Failed to get file details');
+    }
+  };
+
+  const handleOpenTextFile = async (name: string) => {
+    try {
+      const filePath = `${currentPath}${name}`;
+      const content = await FileSystem.readAsStringAsync(filePath);
+      setTextFileName(name.replace(/\.txt$/, ''));
+      setTextContent(content);
+      setEditingFilePath(filePath);
+      setShowTextModal(true);
+    } catch (error) {
+      Alert.alert('Error', 'Failed to open file for editing');
+    }
+  };
+
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12'
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-        <ThemedText>
-          Tap the Explore tab to learn more about what's included in this starter app.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          When you're ready, run{' '}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+    <View style={styles.container}>
+      {/* Header Section */}
+      <View style={styles.header}>
+        <TouchableOpacity
+          onPress={navigateUp}
+          disabled={currentPath === BASE_PATH}
+        >
+          <Text style={[
+            styles.navButton,
+            currentPath === BASE_PATH && styles.disabled
+          ]}>
+            ↑
+          </Text>
+        </TouchableOpacity>
+        
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          <Text style={styles.pathText}>
+            {currentPath.replace(BASE_PATH, 'AppData/')}
+          </Text>
+        </ScrollView>
+      </View>
+
+      <DiskStats {...diskStats} />
+
+      <FlatList
+        data={fileList}
+        keyExtractor={(item) => item.name}
+        renderItem={({ item }) => (
+          <FileItemComponent
+            item={item}
+            onPress={() => item.isDirectory 
+              ? navigateToFolder(item.name) 
+              : handleOpenTextFile(item.name)
+            }
+            onDelete={() => handleDeleteItem(item.name, item.isDirectory)}
+            onLongPress={() => handleShowDetail(item.name, item.isDirectory)}
+          />
+        )}
+        contentContainerStyle={styles.listContent}
+      />
+
+      {/* Action Buttons */}
+      <View style={styles.actions}>
+        <TouchableOpacity
+          style={styles.actionButton}
+          onPress={() => setShowFolderModal(true)}
+        >
+          <Text style={styles.actionButtonText}>New Folder</Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity
+          style={styles.actionButton}
+          onPress={() => {
+            setEditingFilePath(null);
+            setShowTextModal(true);
+          }}
+        >
+          <Text style={styles.actionButtonText}>New File</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Modals */}
+      <CreateFolderModal
+        visible={showFolderModal}
+        folderName={folderName}
+        setFolderName={setFolderName}
+        onCreate={handleCreateFolder}
+        onCancel={() => setShowFolderModal(false)}
+      />
+
+      <TextFileModal
+        visible={showTextModal}
+        fileName={textFileName}
+        content={textContent}
+        isEditing={!!editingFilePath}
+        setFileName={setTextFileName}
+        setContent={setTextContent}
+        onSave={editingFilePath ? handleSaveEdits : handleCreateTextFile}
+        onCancel={resetTextModal}
+      />
+
+      <FileDetailModal
+        visible={showDetailModal}
+        fileDetail={fileDetail}
+        onClose={() => setShowDetailModal(false)}
+      />
+    </View>
   );
-}
+};
 
 const styles = StyleSheet.create({
-  titleContainer: {
+  container: {
+    flex: 1,
+    paddingTop: Platform.OS === 'android' ? 40 : 20,
+    backgroundColor: '#ffffff',
+  },
+  header: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
+  navButton: {
+    fontSize: 24,
+    color: '#007AFF',
+    marginRight: 16,
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  disabled: {
+    color: '#b0b0b0',
+  },
+  pathText: {
+    fontSize: 16,
+    color: '#424242',
+  },
+  listContent: {
+    paddingHorizontal: 16,
+  },
+  actions: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    paddingVertical: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#e0e0e0',
+  },
+  actionButton: {
+    backgroundColor: '#007AFF',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+    elevation: 2,
+  },
+  actionButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '500',
   },
 });
+
+export default FileManagerScreen;
