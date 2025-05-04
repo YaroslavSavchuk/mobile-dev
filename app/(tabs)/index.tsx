@@ -1,10 +1,15 @@
 import { Dimensions, Image, StyleSheet } from 'react-native';
-import { GestureDetector, Gesture, GestureHandlerRootView, Directions } from 'react-native-gesture-handler';
-import Animated, { 
-  useAnimatedStyle, 
-  useSharedValue, 
-  runOnJS, 
-  withTiming 
+import {
+  GestureDetector,
+  Gesture,
+  GestureHandlerRootView,
+  Directions
+} from 'react-native-gesture-handler';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  runOnJS,
+  withTiming
 } from 'react-native-reanimated';
 import { useGame } from '@/context/GameContext';
 import ParallaxScrollView from '@/components/ParallaxScrollView';
@@ -46,7 +51,6 @@ export default function HomeScreen() {
     changeLogoColor();
   };
 
-  // Gesture Definitions
   const singleTap = Gesture.Tap()
     .onEnd(() => runOnJS(handleSingleTap)());
 
@@ -73,15 +77,6 @@ export default function HomeScreen() {
       };
     });
 
-  //fix flinging swiping once right or left causing two task completion
-  const fling = Gesture.Fling()
-    .direction(Directions.RIGHT | Directions.LEFT)
-    .onEnd(e => {
-      runOnJS(updatePoints)(Math.floor(Math.random() * 10) + 1);
-      if (Directions.RIGHT) runOnJS(completeTask)(5);
-      if (Directions.LEFT) runOnJS(completeTask)(6);
-    });
-
   const pinch = Gesture.Pinch()
     .onStart(() => startScale.value = scale.value)
     .onUpdate(e => scale.value = e.scale)
@@ -89,9 +84,23 @@ export default function HomeScreen() {
       if (scale.value !== startScale.value) runOnJS(completeTask)(7);
     });
 
+  const flingRight = Gesture.Fling()
+    .direction(Directions.RIGHT)
+    .onEnd(() => {
+      runOnJS(updatePoints)(Math.floor(Math.random() * 10) + 1);
+      runOnJS(completeTask)(5);
+    });
+
+  const flingLeft = Gesture.Fling()
+    .direction(Directions.LEFT)
+    .onEnd(() => {
+      runOnJS(updatePoints)(Math.floor(Math.random() * 10) + 1);
+      runOnJS(completeTask)(6);
+    });
+
   const composedGestures = Gesture.Simultaneous(
     taps,
-    Gesture.Simultaneous(longPress, pan, pinch, fling)
+    Gesture.Simultaneous(longPress, pan, pinch, flingRight, flingLeft)
   );
 
   const animatedStyle = useAnimatedStyle(() => ({
