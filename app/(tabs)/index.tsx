@@ -10,6 +10,7 @@ import React from 'react';
 
 export default function HomeScreen() {
   const { points, updatePoints } = useGame();
+  const startPosition = useSharedValue({ x: 0, y: 0 });
   const position = useSharedValue({ x: 0, y: 0 });
   const scale = useSharedValue(1);
 
@@ -25,6 +26,23 @@ export default function HomeScreen() {
 
   const taps = Gesture.Exclusive(doubleTap, singleTap);
 
+  const longPress = Gesture.LongPress()
+    .minDuration(1000)
+    .onEnd(() => {
+      runOnJS(updatePoints)(10);
+    });
+
+  const pan = Gesture.Pan()
+    .onStart(() => {
+      startPosition.value = { ...position.value };
+    })
+    .onUpdate(e => {
+      position.value = {
+        x: startPosition.value.x + e.translationX,
+        y: startPosition.value.y + e.translationY,
+      };
+    });
+
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [
       { translateX: position.value.x },
@@ -32,6 +50,11 @@ export default function HomeScreen() {
       { scale: scale.value },
     ],
   }));
+
+  const composedGestures = Gesture.Simultaneous(
+    taps, 
+    Gesture.Simultaneous(longPress, pan)
+  );
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
@@ -47,7 +70,7 @@ export default function HomeScreen() {
           <ThemedText type="title">Points: {points}</ThemedText>
         </ThemedView>
 
-        <GestureDetector gesture={taps}>
+        <GestureDetector gesture={composedGestures}>
           <Animated.View style={[styles.box, animatedStyle]}></Animated.View>
         </GestureDetector>
       </ParallaxScrollView>
