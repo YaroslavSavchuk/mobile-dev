@@ -1,5 +1,5 @@
 import { Image, StyleSheet, Text } from 'react-native';
-import { GestureDetector, Gesture, GestureHandlerRootView } from 'react-native-gesture-handler';
+import { GestureDetector, Gesture, GestureHandlerRootView, Directions } from 'react-native-gesture-handler';
 import Animated, { 
   useAnimatedStyle, 
   useSharedValue, 
@@ -14,7 +14,7 @@ import { ThemedView } from '@/components/ThemedView';
 import React from 'react';
 
 export default function HomeScreen() {
-  const { points, updatePoints } = useGame();
+  const { points, updatePoints, completeTask, updateTaskProgress } = useGame();
   const startPosition = useSharedValue({ x: 0, y: 0 });
   const position = useSharedValue({ x: 0, y: 0 });
   const startScale = useSharedValue(1);
@@ -28,11 +28,13 @@ export default function HomeScreen() {
 
   const handleSingleTap = () => {
     updatePoints(1);
+    updateTaskProgress(1,1);
     changeLogoColor();
   };
 
   const handleDoubleTap = () => {
     updatePoints(2);
+    updateTaskProgress(2, 1);
     changeLogoColor();
   };
 
@@ -50,12 +52,14 @@ export default function HomeScreen() {
   const taps = Gesture.Exclusive(doubleTap, singleTap);
 
   const longPress = Gesture.LongPress()
-    .minDuration(1000)
+    .minDuration(3000)
     .onEnd(() => {
       runOnJS(updatePoints)(10);
+      runOnJS(completeTask)(3);
     });
 
   const pan = Gesture.Pan()
+    .onBegin(() => runOnJS(completeTask)(4))
     .onStart(() => {
       startPosition.value = { ...position.value };
     })
@@ -66,10 +70,13 @@ export default function HomeScreen() {
       };
     });
 
+  //fix flinging swiping once right or left causing two task completion
   const fling = Gesture.Fling()
-    .direction(1 | 3)
-    .onStart(() => {
+    .direction(Directions.RIGHT | Directions.LEFT)
+    .onEnd(e => {
       runOnJS(updatePoints)(Math.floor(Math.random() * 10) + 1);
+      if (Directions.RIGHT) runOnJS(completeTask)(5);
+      if (Directions.LEFT) runOnJS(completeTask)(6);
     });
 
   const pinch = Gesture.Pinch()
@@ -78,6 +85,9 @@ export default function HomeScreen() {
     })
     .onUpdate(e => {
       scale.value = e.scale;
+    })
+    .onEnd(() => {
+      if (scale.value !== startScale.value) runOnJS(completeTask)(7);
     });
 
   const animatedStyle = useAnimatedStyle(() => ({
