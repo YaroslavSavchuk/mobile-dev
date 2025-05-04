@@ -9,6 +9,8 @@ import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { GameProvider } from '@/context/GameContext';
 
+React.useLayoutEffect = React.useEffect 
+
 export default function TabLayout() {
   const colorScheme = useColorScheme();
 
