@@ -1,6 +1,11 @@
 import { Image, StyleSheet, Text } from 'react-native';
 import { GestureDetector, Gesture, GestureHandlerRootView } from 'react-native-gesture-handler';
-import Animated, { useAnimatedStyle, useSharedValue, runOnJS } from 'react-native-reanimated';
+import Animated, { 
+  useAnimatedStyle, 
+  useSharedValue, 
+  runOnJS, 
+  withTiming 
+} from 'react-native-reanimated';
 import { useGame } from '@/context/GameContext';
 
 import ParallaxScrollView from '@/components/ParallaxScrollView';
@@ -14,15 +19,32 @@ export default function HomeScreen() {
   const position = useSharedValue({ x: 0, y: 0 });
   const startScale = useSharedValue(1);
   const scale = useSharedValue(1);
+  const logoColor = useSharedValue('#61dafb');
+
+  const changeLogoColor = () => {
+    const randomColor = '#' + Math.floor(Math.random() * 16777215).toString(16);
+    logoColor.value = withTiming(randomColor, { duration: 500 });
+  };
+
+  const handleSingleTap = () => {
+    updatePoints(1);
+    changeLogoColor();
+  };
+
+  const handleDoubleTap = () => {
+    updatePoints(2);
+    changeLogoColor();
+  };
 
   const singleTap = Gesture.Tap().onEnd(() => {
-    runOnJS(updatePoints)(1);
+    runOnJS(handleSingleTap)();
   });
 
   const doubleTap = Gesture.Tap()
     .numberOfTaps(2)
     .onEnd(() => {
-      runOnJS(updatePoints)(2);
+      console.log("double tap!")
+      runOnJS(handleDoubleTap)();
     });
 
   const taps = Gesture.Exclusive(doubleTap, singleTap);
@@ -46,7 +68,7 @@ export default function HomeScreen() {
 
   const fling = Gesture.Fling()
     .direction(1 | 3)
-    .onStart(e => {
+    .onStart(() => {
       runOnJS(updatePoints)(Math.floor(Math.random() * 10) + 1);
     });
 
@@ -54,7 +76,9 @@ export default function HomeScreen() {
     .onStart(() => {
       startScale.value = scale.value;
     })
-    .onUpdate(e => scale.value = e.scale);
+    .onUpdate(e => {
+      scale.value = e.scale;
+    });
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [
@@ -64,6 +88,10 @@ export default function HomeScreen() {
     ],
   }));
 
+  const animatedLogoStyle = useAnimatedStyle(() => ({
+    tintColor: logoColor.value,
+  }));
+
   const composedGestures = Gesture.Simultaneous(
     taps,
     Gesture.Simultaneous(longPress, pan, pinch, fling)
@@ -71,7 +99,6 @@ export default function HomeScreen() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      {/* Scrollable content (header, points, etc) */}
       <ParallaxScrollView
         headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
         headerImage={
@@ -85,10 +112,12 @@ export default function HomeScreen() {
         </ThemedView>
       </ParallaxScrollView>
 
-      {/* Interactive gesture area */}
       <GestureDetector gesture={composedGestures}>
         <Animated.View style={styles.interactiveArea}>
-          <Animated.View style={[styles.box, animatedStyle]} />
+          <Animated.Image
+            source={require('@/assets/images/react-logo-big.png')}
+            style={[styles.logo, animatedStyle, animatedLogoStyle]}
+          />
         </Animated.View>
       </GestureDetector>
     </GestureHandlerRootView>
@@ -111,12 +140,11 @@ const styles = StyleSheet.create({
   },
   interactiveArea: {
     flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  box: {
-    width: 100,
-    height: 100,
-    backgroundColor: 'blue',
-    borderRadius: 10,
-    position: 'absolute',
+  logo: {
+    width: 150,
+    height: 150,
   },
 });
