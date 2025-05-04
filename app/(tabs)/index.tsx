@@ -16,7 +16,7 @@ export default function HomeScreen() {
   const scale = useSharedValue(1);
 
   const singleTap = Gesture.Tap().onEnd(() => {
-      runOnJS(updatePoints)(1);
+    runOnJS(updatePoints)(1);
   });
 
   const doubleTap = Gesture.Tap()
@@ -71,6 +71,7 @@ export default function HomeScreen() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
+      {/* Scrollable content (header, points, etc) */}
       <ParallaxScrollView
         headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
         headerImage={
@@ -82,11 +83,14 @@ export default function HomeScreen() {
         <ThemedView style={styles.titleContainer}>
           <ThemedText type="title">Points: {points}</ThemedText>
         </ThemedView>
-
-        <GestureDetector gesture={composedGestures}>
-          <Animated.View style={[styles.box, animatedStyle]}></Animated.View>
-        </GestureDetector>
       </ParallaxScrollView>
+
+      {/* Interactive gesture area */}
+      <GestureDetector gesture={composedGestures}>
+        <Animated.View style={styles.interactiveArea}>
+          <Animated.View style={[styles.box, animatedStyle]} />
+        </Animated.View>
+      </GestureDetector>
     </GestureHandlerRootView>
   );
 }
@@ -96,6 +100,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+    padding: 16,
   },
   reactLogo: {
     height: 178,
@@ -104,5 +109,14 @@ const styles = StyleSheet.create({
     left: 0,
     position: 'absolute',
   },
-  box: { width: 100, height: 100, backgroundColor: 'blue', borderRadius: 10 },
+  interactiveArea: {
+    flex: 1,
+  },
+  box: {
+    width: 100,
+    height: 100,
+    backgroundColor: 'blue',
+    borderRadius: 10,
+    position: 'absolute',
+  },
 });
