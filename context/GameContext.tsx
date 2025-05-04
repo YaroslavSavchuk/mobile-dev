@@ -15,7 +15,6 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
 
   const updatePoints = (amount: number) => {
     setPoints(prev => prev + amount);
-    console.log("updated points", points)
   };
 
   return (
