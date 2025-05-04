@@ -1,4 +1,4 @@
-import { Image, StyleSheet, Text } from 'react-native';
+import { Dimensions, Image, StyleSheet } from 'react-native';
 import { GestureDetector, Gesture, GestureHandlerRootView, Directions } from 'react-native-gesture-handler';
 import Animated, { 
   useAnimatedStyle, 
@@ -7,16 +7,24 @@ import Animated, {
   withTiming 
 } from 'react-native-reanimated';
 import { useGame } from '@/context/GameContext';
-
 import ParallaxScrollView from '@/components/ParallaxScrollView';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import React from 'react';
 
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+const LOGO_SIZE = 150;
+
 export default function HomeScreen() {
   const { points, updatePoints, completeTask, updateTaskProgress } = useGame();
-  const startPosition = useSharedValue({ x: 0, y: 0 });
-  const position = useSharedValue({ x: 0, y: 0 });
+  const startPosition = useSharedValue({ 
+    x: (SCREEN_WIDTH - LOGO_SIZE) / 2, 
+    y: (SCREEN_HEIGHT - LOGO_SIZE) / 2 
+  });
+  const position = useSharedValue({ 
+    x: (SCREEN_WIDTH - LOGO_SIZE) / 2, 
+    y: (SCREEN_HEIGHT - LOGO_SIZE) / 2 
+  });
   const startScale = useSharedValue(1);
   const scale = useSharedValue(1);
   const logoColor = useSharedValue('#61dafb');
@@ -28,7 +36,7 @@ export default function HomeScreen() {
 
   const handleSingleTap = () => {
     updatePoints(1);
-    updateTaskProgress(1,1);
+    updateTaskProgress(1, 1);
     changeLogoColor();
   };
 
@@ -38,16 +46,13 @@ export default function HomeScreen() {
     changeLogoColor();
   };
 
-  const singleTap = Gesture.Tap().onEnd(() => {
-    runOnJS(handleSingleTap)();
-  });
+  // Gesture Definitions
+  const singleTap = Gesture.Tap()
+    .onEnd(() => runOnJS(handleSingleTap)());
 
   const doubleTap = Gesture.Tap()
     .numberOfTaps(2)
-    .onEnd(() => {
-      console.log("double tap!")
-      runOnJS(handleDoubleTap)();
-    });
+    .onEnd(() => runOnJS(handleDoubleTap)());
 
   const taps = Gesture.Exclusive(doubleTap, singleTap);
 
@@ -60,9 +65,7 @@ export default function HomeScreen() {
 
   const pan = Gesture.Pan()
     .onBegin(() => runOnJS(completeTask)(4))
-    .onStart(() => {
-      startPosition.value = { ...position.value };
-    })
+    .onStart(() => startPosition.value = { ...position.value })
     .onUpdate(e => {
       position.value = {
         x: startPosition.value.x + e.translationX,
@@ -80,15 +83,16 @@ export default function HomeScreen() {
     });
 
   const pinch = Gesture.Pinch()
-    .onStart(() => {
-      startScale.value = scale.value;
-    })
-    .onUpdate(e => {
-      scale.value = e.scale;
-    })
+    .onStart(() => startScale.value = scale.value)
+    .onUpdate(e => scale.value = e.scale)
     .onEnd(() => {
       if (scale.value !== startScale.value) runOnJS(completeTask)(7);
     });
+
+  const composedGestures = Gesture.Simultaneous(
+    taps,
+    Gesture.Simultaneous(longPress, pan, pinch, fling)
+  );
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [
@@ -101,11 +105,6 @@ export default function HomeScreen() {
   const animatedLogoStyle = useAnimatedStyle(() => ({
     tintColor: logoColor.value,
   }));
-
-  const composedGestures = Gesture.Simultaneous(
-    taps,
-    Gesture.Simultaneous(longPress, pan, pinch, fling)
-  );
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
@@ -123,12 +122,15 @@ export default function HomeScreen() {
       </ParallaxScrollView>
 
       <GestureDetector gesture={composedGestures}>
-        <Animated.View style={styles.interactiveArea}>
-          <Animated.Image
-            source={require('@/assets/images/react-logo-big.png')}
-            style={[styles.logo, animatedStyle, animatedLogoStyle]}
-          />
-        </Animated.View>
+        <Animated.Image
+          source={require('@/assets/images/react-logo-big.png')}
+          style={[
+            styles.logo,
+            animatedStyle,
+            animatedLogoStyle,
+            { position: 'absolute' }
+          ]}
+        />
       </GestureDetector>
     </GestureHandlerRootView>
   );
@@ -148,13 +150,8 @@ const styles = StyleSheet.create({
     left: 0,
     position: 'absolute',
   },
-  interactiveArea: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
   logo: {
-    width: 150,
-    height: 150,
+    width: LOGO_SIZE,
+    height: LOGO_SIZE,
   },
 });
