@@ -1,147 +1,56 @@
-import { Dimensions, Image, StyleSheet } from 'react-native';
-import {
-  GestureDetector,
-  Gesture,
-  GestureHandlerRootView,
-  Directions
-} from 'react-native-gesture-handler';
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  runOnJS,
-  withTiming
-} from 'react-native-reanimated';
-import { useGame } from '@/context/GameContext';
+import { Image, StyleSheet, Platform } from 'react-native';
+
+import { HelloWave } from '@/components/HelloWave';
 import ParallaxScrollView from '@/components/ParallaxScrollView';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
-import React from 'react';
-
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
-const LOGO_SIZE = 150;
 
 export default function HomeScreen() {
-  const { points, updatePoints, completeTask, updateTaskProgress } = useGame();
-  const startPosition = useSharedValue({ 
-    x: (SCREEN_WIDTH - LOGO_SIZE) / 2, 
-    y: (SCREEN_HEIGHT - LOGO_SIZE) / 2 
-  });
-  const position = useSharedValue({ 
-    x: (SCREEN_WIDTH - LOGO_SIZE) / 2, 
-    y: (SCREEN_HEIGHT - LOGO_SIZE) / 2 
-  });
-  const startScale = useSharedValue(1);
-  const scale = useSharedValue(1);
-  const logoColor = useSharedValue('#61dafb');
-
-  const changeLogoColor = () => {
-    const randomColor = '#' + Math.floor(Math.random() * 16777215).toString(16);
-    logoColor.value = withTiming(randomColor, { duration: 500 });
-  };
-
-  const handleSingleTap = () => {
-    updatePoints(1);
-    updateTaskProgress(1, 1);
-    changeLogoColor();
-  };
-
-  const handleDoubleTap = () => {
-    updatePoints(2);
-    updateTaskProgress(2, 1);
-    changeLogoColor();
-  };
-
-  const singleTap = Gesture.Tap()
-    .onEnd(() => runOnJS(handleSingleTap)());
-
-  const doubleTap = Gesture.Tap()
-    .numberOfTaps(2)
-    .onEnd(() => runOnJS(handleDoubleTap)());
-
-  const taps = Gesture.Exclusive(doubleTap, singleTap);
-
-  const longPress = Gesture.LongPress()
-    .minDuration(3000)
-    .onEnd(() => {
-      runOnJS(updatePoints)(10);
-      runOnJS(completeTask)(3);
-    });
-
-  const pan = Gesture.Pan()
-    .onBegin(() => runOnJS(completeTask)(4))
-    .onStart(() => startPosition.value = { ...position.value })
-    .onUpdate(e => {
-      position.value = {
-        x: startPosition.value.x + e.translationX,
-        y: startPosition.value.y + e.translationY,
-      };
-    });
-
-  const pinch = Gesture.Pinch()
-    .onStart(() => startScale.value = scale.value)
-    .onUpdate(e => scale.value = e.scale)
-    .onEnd(() => {
-      if (scale.value !== startScale.value) runOnJS(completeTask)(7);
-    });
-
-  const flingRight = Gesture.Fling()
-    .direction(Directions.RIGHT)
-    .onEnd(() => {
-      runOnJS(updatePoints)(Math.floor(Math.random() * 10) + 1);
-      runOnJS(completeTask)(5);
-    });
-
-  const flingLeft = Gesture.Fling()
-    .direction(Directions.LEFT)
-    .onEnd(() => {
-      runOnJS(updatePoints)(Math.floor(Math.random() * 10) + 1);
-      runOnJS(completeTask)(6);
-    });
-
-  const composedGestures = Gesture.Simultaneous(
-    taps,
-    Gesture.Simultaneous(longPress, pan, pinch, flingRight, flingLeft)
-  );
-
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [
-      { translateX: position.value.x },
-      { translateY: position.value.y },
-      { scale: scale.value },
-    ],
-  }));
-
-  const animatedLogoStyle = useAnimatedStyle(() => ({
-    tintColor: logoColor.value,
-  }));
-
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <ParallaxScrollView
-        headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-        headerImage={
-          <Image
-            source={require('@/assets/images/partial-react-logo.png')}
-            style={styles.reactLogo}
-          />
-        }>
-        <ThemedView style={styles.titleContainer}>
-          <ThemedText type="title">Points: {points}</ThemedText>
-        </ThemedView>
-      </ParallaxScrollView>
-
-      <GestureDetector gesture={composedGestures}>
-        <Animated.Image
-          source={require('@/assets/images/react-logo-big.png')}
-          style={[
-            styles.logo,
-            animatedStyle,
-            animatedLogoStyle,
-            { position: 'absolute' }
-          ]}
+    <ParallaxScrollView
+      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
+      headerImage={
+        <Image
+          source={require('@/assets/images/partial-react-logo.png')}
+          style={styles.reactLogo}
         />
-      </GestureDetector>
-    </GestureHandlerRootView>
+      }>
+      <ThemedView style={styles.titleContainer}>
+        <ThemedText type="title">Welcome!</ThemedText>
+        <HelloWave />
+      </ThemedView>
+      <ThemedView style={styles.stepContainer}>
+        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
+        <ThemedText>
+          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
+          Press{' '}
+          <ThemedText type="defaultSemiBold">
+            {Platform.select({
+              ios: 'cmd + d',
+              android: 'cmd + m',
+              web: 'F12'
+            })}
+          </ThemedText>{' '}
+          to open developer tools.
+        </ThemedText>
+      </ThemedView>
+      <ThemedView style={styles.stepContainer}>
+        <ThemedText type="subtitle">Step 2: Explore</ThemedText>
+        <ThemedText>
+          Tap the Explore tab to learn more about what's included in this starter app.
+        </ThemedText>
+      </ThemedView>
+      <ThemedView style={styles.stepContainer}>
+        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
+        <ThemedText>
+          When you're ready, run{' '}
+          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
+          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
+          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
+          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
+        </ThemedText>
+      </ThemedView>
+    </ParallaxScrollView>
   );
 }
 
@@ -150,7 +59,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    padding: 16,
+  },
+  stepContainer: {
+    gap: 8,
+    marginBottom: 8,
   },
   reactLogo: {
     height: 178,
@@ -158,9 +70,5 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     position: 'absolute',
-  },
-  logo: {
-    width: LOGO_SIZE,
-    height: LOGO_SIZE,
   },
 });
