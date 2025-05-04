@@ -8,6 +8,8 @@ import TabBarBackground from '@/components/ui/TabBarBackground';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { GameProvider } from '@/context/GameContext';
+import FontAwesome from '@expo/vector-icons/FontAwesome';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 
 React.useLayoutEffect = React.useEffect 
 
@@ -32,15 +34,15 @@ export default function TabLayout() {
         <Tabs.Screen
           name="index"
           options={{
-            title: 'Home',
-            tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
+            title: 'Clicker',
+            tabBarIcon: ({ color }) => <MaterialCommunityIcons name="gesture-tap-box" size={24} color={color} />,
           }}
         />
         <Tabs.Screen
           name="explore"
           options={{
-            title: 'Explore',
-            tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
+            title: 'Tasks',
+            tabBarIcon: ({ color }) => <FontAwesome name="tasks" size={24} color={color} />,
           }}
         />
       </Tabs>
